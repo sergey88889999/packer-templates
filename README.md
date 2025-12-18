@@ -1,5 +1,6 @@
 # Infrastructure as Code: Packer Templates
 ![Packer Validate](https://github.com/sergey88889999/packer-templates/actions/workflows/validate.yml/badge.svg)
+
 A collection of Packer templates for automatically building "golden images" of virtual machines.
 
 ## Requirements
