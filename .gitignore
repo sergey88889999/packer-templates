@@ -1,0 +1,10 @@
+# Secrets
+*.pkrvars.hcl
+!*.example.pkrvars.hcl
+
+# Packer temporary files
+packer_cache/
+output-*/
+
+# Future projects in development
+debian13-LFS/
