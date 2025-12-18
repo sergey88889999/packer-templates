@@ -1,0 +1,37 @@
+name: Packer Validate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "latest"
+
+      - name: Prepare Secrets for Validation
+        run: |
+          # Чтобы валидация прошла, создаем временные файлы секретов из примеров
+          find . -name "*.pkrvars.hcl.example" -exec sh -c 'cp "$1" "${1%.example}"' _ {} \;
+
+      - name: Packer Init & Validate
+        run: |
+          # Заходим в каждую папку, где есть шаблоны, инициализируем и проверяем
+          for dir in $(find . -maxdepth 2 -type d); do
+            if [ -f "$dir"/*.pkr.hcl ]; then
+              echo "Checking $dir..."
+              cd "$dir"
+              packer init .
+              packer validate .
+              cd - > /dev/null
+            fi
+          done
