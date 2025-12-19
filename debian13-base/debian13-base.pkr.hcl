@@ -49,14 +49,23 @@ source "proxmox-iso" "debian13" {
   }
     
   // --- VM settings ---
-  memory = 2048
-  cores  = 2
-  
+  memory = 1024
+  cores  = 1
+  sockets = 1
+  machine = "q35"
+  bios    = "ovmf"
+
   scsi_controller = "virtio-scsi-pci"
   
+  
+  efi_config {
+    efi_storage_pool  = "local-lvm"
+    pre_enrolled_keys = true
+  }
+
   disks {
     type         = "scsi"
-    disk_size    = "10G"
+    disk_size    = "5G"
     storage_pool = "local-lvm"
     format       = "raw"
   }
@@ -80,23 +89,24 @@ source "proxmox-iso" "debian13" {
     })
   }
 
-  boot_wait = "5s"
+  boot_wait = "8s"
   boot_command = [
-    "<esc><wait>",
-    "auto ",
-    "console-setup/ask_detect=false ",
-    "console-keymaps-at/keymap=us ",
-    "debconf/frontend=noninteractive ",
-    "debian-installer/locale=en_US.UTF-8 ",
-    "locale=en_US.UTF-8 ",
-    "kbd-chooser/method=us ",
-    "keyboard-configuration/xkb-keymap=us ",
-    "netcfg/get_hostname=debian13 ",
-    "netcfg/get_domain=localdomain ",
-    "fb=false ",
-    "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
-    "<enter>"
-  ]
+  "<wait><wait>",
+  "e",
+  "<wait>",
+  "<down><down><down><end>",
+  " auto ",
+  "priority=critical ",
+  "DEBCONF_DEBUG=5 ",
+  "interface=auto ",
+  "netcfg/disable_dhcp=false ",
+  "preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg ",
+  "debian-installer/locale=en_US.UTF-8 ",
+  "console-keymaps-at/keymap=us ",
+  "keyboard-configuration/xkb-keymap=us ",
+  "<f10>"
+ ]
+
 
   // --- SSH settings ---
   ssh_username           = "root"

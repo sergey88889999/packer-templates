@@ -43,14 +43,56 @@ d-i clock-setup/utc boolean true
 d-i time/zone string Europe/Berlin
 d-i clock-setup/ntp boolean true
 
-### Disk Partitioning (ENTIRE DISK, AUTOMATIC)
-d-i partman-auto/method string regular
-d-i partman-auto/choose_recipe select atomic
+### Disk Partitioning (UEFI, GPT, LVM)
+##############################################
+d-i partman-auto/method string lvm
 d-i partman-lvm/device_remove_lvm boolean true
 d-i partman-md/device_remove_md boolean true
 d-i partman-lvm/confirm boolean true
 d-i partman-lvm/confirm_nooverwrite boolean true
-d-i partman-auto/disk string /dev/sda
+
+# GPT
+d-i partman-basicfilesystems/choose_label string gpt
+d-i partman-partitioning/choose_label string gpt
+
+d-i partman-auto/choose_recipe select boot-root
+d-i partman-auto-lvm/new_vg_name string vg_system
+
+# Custom partitioning recipe using LVM and GPT
+d-i partman-auto/expert_recipe string                         \
+      boot-root ::                                            \
+              512 512 512 fat32                               \
+                      $iflabel{ gpt }                         \
+                      $primary{ }                             \
+                      method{ efi } format{ }                 \
+                      mountpoint{ /boot/efi }                 \
+              .                                               \
+              512 512 512 ext4                                \
+                      $primary{ }                             \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ ext4 }    \
+                      mountpoint{ /boot }                     \
+              .                                               \
+              100 1000 -1 lvm                                 \
+                      $primary{ }                             \
+                      method{ lvm }                           \
+                      device{ /dev/sda }                      \
+                      vg_name{ vg_system }                    \
+              .                                               \
+              2048 10000 -1 ext4                              \
+                      $lvmok{ }                               \
+                      in_vg{ vg_system }                      \
+                      lv_name{ root }                         \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ ext4 }    \
+                      mountpoint{ / }                         \
+              .
+
+# Swap off
+d-i partman-basicfilesystems/no_swap boolean false
+d-i partman-noswap/confirm boolean true
+
+# Automate confirmation of partition tables and write changes to disk
 d-i partman/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
 d-i partman/confirm boolean true
@@ -68,10 +110,11 @@ d-i pkgsel/upgrade select full-upgrade
 # Participate in the package popularity contest
 popularity-contest popularity-contest/participate boolean false
 
-### GRUB Bootloader
+### GRUB bootloader configuration for UEFI
 d-i grub-installer/only_debian boolean true
 d-i grub-installer/with_other_os boolean false
-d-i grub-installer/bootdev string /dev/sda
+# Убираем /dev/sda, для UEFI это критично!
+d-i grub-installer/bootdev string default
 
 ### Finalizing the installation
 d-i finish-install/reboot_in_progress note
