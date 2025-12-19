@@ -1,29 +1,49 @@
-## Debian 13.02 (Trixie) - Base Image
+# Debian 13 (Trixie) - Base Image (UEFI + LVM)
 
-This is a "Golden Image" for a server based on **Debian 13.02 (Trixie)**, created using **Packer** for **Proxmox VE**.
+This is a "Golden Image" template for **Debian 13 (Trixie)**, built with **Packer** for **Proxmox VE**. 
+It serves as a minimalist, highly flexible foundation for various projects, including LFS builders, web servers, or development environments.
 
-The image is a minimal, ready-to-use template that is fully automated and prepared for cloning.
+## Key Features
 
-### Key Features:
+- **Boot:** UEFI (`OVMF`) support with **GPT** partition table.
+- **Storage Management:** **LVM** (Logical Volume Manager) enabled by default for easy disk scaling.
+- **Remote Access:** `root` login enabled via SSH (supports both password and keys).
 
-- A `root` user is created (with a password).
-- SSH server is enabled.
-- QEMU Guest Agent is enabled.
-- Cloud-init is enabled.
+## Disk Partitioning (LVM)
 
-### Installed Software:
+The image uses a structured LVM layout within a 5GB disk:
+- `/boot/efi`: 512MB (vfat) — EFI System Partition.
+- `/boot`: 512MB (ext4) — Linux Kernel & Initrd.
+- **Volume Group (`vg_system`):**
+    - `root` (LV): ~4GB (ext4) — Root filesystem.
 
-- **mc** (Midnight Commander)
-- **htop** (Interactive process viewer)
 
-### VM Template Configuration:
 
-- **Default VM ID:** 900
-- **CPU:** 2 cores
-- **Memory:** 2 GB
-- **Disk:** 10 GB
-- **Network:** 1 VirtIO adapter (bridge `vmbr0`)
+## Installed Software
 
-### Preparation for Cloning:
+- **Core:** `openssh-server`, `cloud-init`, `qemu-guest-agent`, `locales`.
+- **Utilities:** `mc` (Midnight Commander), `htop`.
 
-After installation, the image is cleaned to ensure that each new VM created from this template is unique: the `machine-id` is reset, host SSH keys are removed, and logs and cloud-init data are cleared.
+## Build Specifications (Template Resources)
+
+These resources are used for the **base template**. When cloning via OpenTofu/Terraform, these can be scaled up (e.g., to 12GB RAM / 5+ Cores for LFS).
+- **CPU:** 1 Core
+- **Memory:** 1 Gb
+- **Disk:** 5 GB (Scsi/VirtIO)
+- **Machine Type:** `q35`
+- **BIOS:** `OVMF` (UEFI)
+
+## Image Cleanup (Golden Image Prep)
+
+To ensure each cloned VM is unique, the following cleanup steps are performed during the build:
+- **Machine ID:** Reset (`/etc/machine-id` truncated).
+- **SSH Host Keys:** Removed (regenerated automatically on first boot).
+- **Cloud-Init:** Logs and instance data purged (`cloud-init clean`).
+- **Logs:** System logs truncated to save space.
+- **History:** Root bash history cleared.
+
+## Usage
+
+1. Build the image using Packer: `packer build .`
+2. The resulting template (ID 900) will appear in Proxmox.
+3. Use **OpenTofu/Terraform** to clone this template and expand the LVM partitions as needed.
