@@ -57,7 +57,6 @@ source "proxmox-iso" "debian13" {
 
   scsi_controller = "virtio-scsi-pci"
   
-  
   efi_config {
     efi_storage_pool  = "local-lvm"
     pre_enrolled_keys = true
@@ -90,6 +89,7 @@ source "proxmox-iso" "debian13" {
   }
 
   boot_wait = "8s"
+  // Boot command sequence for UEFI: edits the GRUB menu to inject preseed URL and locale settings
   boot_command = [
   "<wait><wait>",
   "e",
@@ -127,39 +127,65 @@ build {
   // 1. Update the system and install packages
   provisioner "shell" {
     inline = [
-	  "set -x",
+      "set -x",
       "export DEBIAN_FRONTEND=noninteractive",
       "apt-get update",
-      // install packages
-      "apt-get install -y mc htop",
+      
+      // 1. Install necessary packages
+      "apt-get install -y mc htop systemd-resolved",
+      
+      // 2. Remove old network stack (ifupdown is already installed from preseed)
+      "apt-get remove -y ifupdown resolvconf",
       "apt-get autoremove -y",
-      "apt-get clean"
+      
+      // 3. Configure systemd-resolved (DNS resolver)
+      "systemctl enable systemd-resolved",
+      "rm -f /etc/resolv.conf",
+      "ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf",
+      
+      // 4. Configure systemd-networkd
+      "systemctl enable systemd-networkd",
+      
+      // 5. Configure Cloud-Init to use networkd renderer
+      "mkdir -p /etc/cloud/cloud.cfg.d",
+      "cat > /etc/cloud/cloud.cfg.d/99-network-renderer.cfg << 'EOF'",
+      "system_info:",
+      "  network:",
+      "    renderers: ['networkd']",
+      "EOF"
     ]
   }
-
+ 
   // 2. Cleanup for the golden image
   provisioner "shell" {
-    execute_command = "chmod +x {{ .Path }}; /bin/bash {{ .Path }}" 
+    execute_command = "chmod +x {{ .Path }}; /bin/bash {{ .Path }}"
     inline = [
       "set -x",
-      // Clean Cloud-Init (important for OpenTofu/Terraform)
-      "cloud-init clean --log --seed",
+      
+      // Clean Cloud-Init
+      "cloud-init clean --logs --seed",
       "rm -rf /var/lib/cloud/instances/*",
-
-      // Clean SSH host keys (so each VM gets its own)
+      
+      // Clean SSH host keys
       "rm -f /etc/ssh/ssh_host_*",
-
-      // Reset Machine ID (to avoid network IP conflicts)
+      
+      // Reset Machine ID
       "truncate -s 0 /etc/machine-id",
-      "rm -f /var/lib/dbus/machine-id", # on some systems this is a symlink
+      "rm -f /var/lib/dbus/machine-id",
       "ln -s /etc/machine-id /var/lib/dbus/machine-id",
-
+      
+      // Clean systemd-networkd state
+      "rm -rf /etc/systemd/network/*",
+      "rm -f /var/lib/systemd/network/*",
+      
+      // Clean resolv.conf
+      "truncate -s 0 /etc/resolv.conf",
+      
       // Clean logs and history
       "find /var/log -type f -exec truncate --size 0 {} \\;",
       "history -c",
       "rm -f /root/.bash_history",
-      
-      // Flush buffers to disk
+      "apt-get clean",
       "sync"
     ]
   }

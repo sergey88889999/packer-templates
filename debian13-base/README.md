@@ -17,6 +17,14 @@ The image uses a structured LVM layout within a 5GB disk:
 - **Volume Group (`vg_system`):**
     - `root` (LV): ~4GB (ext4) — Root filesystem.
 
+## Networking Stack
+
+The image has been migrated from the legacy `ifupdown` to **systemd-networkd** for improved performance and cloud compatibility.
+
+- **Network Manager:** `systemd-networkd` (enabled).
+- **DNS:** `systemd-resolved` (stub listener configured).
+- **Cloud-Init:** Explicitly configured to use the `networkd` renderer.
+- **Removed:** `ifupdown`, `resolvconf`.
 
 
 ## Installed Software
