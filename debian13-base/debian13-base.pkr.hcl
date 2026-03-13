@@ -43,7 +43,7 @@ source "proxmox-iso" "debian13" {
   // --- ISO and installation settings ---
   boot_iso {
   type             = "scsi"
-  iso_file         = "local:iso/debian-13.2.0-amd64-netinst.iso"
+  iso_file         = "local:iso/debian-13.3.0-amd64-netinst.iso"
   iso_storage_pool = "local"
   unmount          = true
   }
