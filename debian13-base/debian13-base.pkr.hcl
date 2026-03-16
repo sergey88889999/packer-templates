@@ -43,7 +43,7 @@ source "proxmox-iso" "debian13" {
   // --- ISO and installation settings ---
   boot_iso {
   type             = "scsi"
-  iso_file         = "local:iso/debian-13.3.0-amd64-netinst.iso"
+  iso_file         = "local:iso/debian-13.4.0-amd64-netinst.iso"
   iso_storage_pool = "local"
   unmount          = true
   }
@@ -152,7 +152,10 @@ build {
       "system_info:",
       "  network:",
       "    renderers: ['networkd']",
-      "EOF"
+      "EOF",
+    
+      //6. Configure SSH-server
+      "sudo sh -c 'printf \"PermitRootLogin no\\nPasswordAuthentication no\\n\" > /etc/ssh/sshd_config.d/99-security.conf'"
     ]
   }
  
@@ -166,9 +169,10 @@ build {
       "cloud-init clean --logs --seed",
       "rm -rf /var/lib/cloud/instances/*",
       
-      // Clean SSH host keys
+      // Clean SSH host keys and root
       "rm -f /etc/ssh/ssh_host_*",
-      
+      "rm -f /etc/ssh/sshd_config.d/00-packer.conf",
+
       // Reset Machine ID
       "truncate -s 0 /etc/machine-id",
       "rm -f /var/lib/dbus/machine-id",

@@ -113,7 +113,7 @@ popularity-contest popularity-contest/participate boolean false
 ### GRUB bootloader configuration for UEFI
 d-i grub-installer/only_debian boolean true
 d-i grub-installer/with_other_os boolean false
-# Убираем /dev/sda, для UEFI это критично!
+# Remove /dev/sda; this is critical for UEFI.
 d-i grub-installer/bootdev string default
 
 ### Finalizing the installation
@@ -122,8 +122,7 @@ d-i debian-installer/exit/poweroff boolean false
 
 ### Late commands - configure SSH and locale
 d-i preseed/late_command string \
-    in-target sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config; \
-    in-target sed -i 's/^PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config; \
-    in-target systemctl enable ssh; \
-    in-target systemctl enable qemu-guest-agent; \
-    in-target update-locale LANG=en_US.UTF-8 LC_MESSAGES=en_US.UTF-8
+        in-target sh -c 'echo "PermitRootLogin yes\nPasswordAuthentication yes" > /etc/ssh/sshd_config.d/00-packer.conf'; \
+        in-target systemctl enable ssh; \
+        in-target systemctl enable qemu-guest-agent; \
+        in-target update-locale LANG=en_US.UTF-8 LC_MESSAGES=en_US.UTF-8
